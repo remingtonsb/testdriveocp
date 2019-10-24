@@ -119,7 +119,7 @@ metadata:
     name: appserver
   name: appserver
 spec:
-  host: myserver.cloudapps.testdrive.com
+  host: appserver-resantos.apps.na311.openshift.opentlc.com
   port:
     targetPort: 8080
   to:
