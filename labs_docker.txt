@@ -1,0 +1,147 @@
+#run a container rhel:
+sudo docker run --rm -ti --name rhel_$USER rhel:latest /bin/bash
+
+#run a container centos:
+sudo docker run --rm -ti --name centos_$USER centos /bin/bash
+
+#run a container ubuntu:
+sudo docker run --rm -ti --name ubuntu_$USER ubuntu /bin/bash
+
+#describe where from image:
+sudo docker images
+
+
+#run a container rhel and create a file:
+sudo docker run --rm -ti --name rhel_$USER rhel:latest /bin/bash
+touch helloworld.txt
+ls -lha helloworld.txt
+exit
+
+#run again and check if file exists
+sudo docker run --rm -ti --name rhel_$USER rhel:latest /bin/bash
+ls -lha helloworld.txt
+
+#mount a volume on container
+sudo mkdir -p /root/$USER-outside
+
+#run a container with volume mount:
+sudo docker run --rm -ti --name rhel_$USER -v /root/$USER-outside:/root/inside:z rhel:latest /bin/bash
+
+#create a file in container with volume mount
+touch /root/inside/helloworld.txt
+echo "HelloWorld" >> /root/inside/helloworld.txt
+cat /root/inside/helloworld.txt
+
+#run another container with the same volume mount, and test if file exists
+sudo docker run --rm -ti --name rhel_$USER -v /root/$USER-outside:/root/inside:z rhel:latest /bin/bash
+cat /root/inside/helloworld.txt
+
+
+
+#Create a jdk Dockerfile in /home/$USER/myjava/
+
+FROM centos:latest
+MAINTAINER Your Name <your-email@yourdomain.com>
+ENV JAVA_HOME  /usr/java/jdk1.8.0_161
+ADD jdk-8u161-linux-x64.rpm /
+RUN yum -y update && yum -y install unzip tar && \
+    rpm -iv jdk-8u161-linux-x64.rpm && \
+    rm -rf /jdk-8u161-linux-x64.rpm
+
+#build a image with docker file created before
+sudo docker build --rm=true --no-cache --force-rm --tag myjava-$USER:1.0 .
+
+#verify images
+sudo docker images
+
+#run a container from image created before
+sudo docker run --rm -ti --name myjava_$USER myjava-$USER:1.0 /bin/bash
+
+#check java version installed on image and JAVA_HOME variable
+java -version
+env | grep JAVA_HOME
+
+#tag an image:
+sudo docker tag myjava-$USER:1.0 myjava-$USER:latest
+docker images
+
+#Create a Wildfly Dockerfile in /home/$USER/mywildfly/
+
+FROM myjava-youruser:latest
+MAINTAINER Your Name <your-email@yourdomain.com>
+ENV JBOSS_HOME /opt/java/server/as/wildfly
+
+ADD wildfly-11.0.0.Final.zip /
+RUN unzip wildfly-11.0.0.Final.zip && \
+    mkdir -p ${JBOSS_HOME} && rm -rf ${JBOSS_HOME} && mv /wildfly-11.0.0.Final ${JBOSS_HOME} && \
+    rm -rf /wildfly-11.0.0.Final.zip
+
+EXPOSE 8080
+WORKDIR ${JBOSS_HOME}
+CMD ["/opt/java/server/as/wildfly/bin/standalone.sh", "-b", "0.0.0.0"]
+
+#build a image with docker file created before
+sudo docker build --rm=true --no-cache --force-rm --tag mywildfly-$USER:1.0 .
+
+#tag an image:
+sudo docker tag mywildfly-$USER:1.0 mywildfly-$USER:latest
+sudo docker images
+
+#run a container from image create and tagged before:
+sudo docker run -d --rm --name mywildfly_$USER mywildfly-$USER:latest
+
+#verify container running
+sudo docker ps
+
+#Stop container
+sudo docker stop
+
+#Run a container to export port to external IP
+docker run -d -p 80:8080 --name mywildfly_$USER mywildfly-$USER:latest
+
+#access jboss address
+http://bastion.63dd.example.opentlc.com
+
+
+
+#Create a custom Dockerfile in /home/$USER/myapp
+
+FROM mywildfly-youruser:latest
+MAINTAINER Your Name <your-email@yourdomain.com>
+
+RUN yum -y install git && \
+    git clone https://github.com/latam-tech-office/examplle-docker-variable && \
+    cd examplle-docker-variable && \
+    curl -O https://repo.maven.apache.org/maven2/javax/javaee-web-api/7.0/javaee-web-api-7.0.jar && \
+
+    mkdir -p dist/WEB-INF/classes && \
+    javac -cp javaee-web-api-7.0.jar -d dist/WEB-INF/classes/ src/java/MynameServlet.java && \
+    cp web/index.html dist/ && \
+    cp web/WEB-INF/jboss-web.xml dist/WEB-INF/ && \
+    pushd dist && jar cfv ${JBOSS_HOME}/standalone/deployments/myname.war . && popd && cd / && \
+    rm -rf examplle-docker-variable
+
+EXPOSE 8080
+WORKDIR ${JBOSS_HOME}
+CMD ["/opt/java/server/as/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0" ]
+
+#build a image with docker file created before
+sudo docker build --rm=true --no-cache --force-rm --tag mywildfly-$USER:1.0 .
+sudo docker images
+
+
+#tag an image:
+sudo docker tag myapp-$USER:1.0 myapp-$USER:latest
+sudo docker images
+
+#Run a container to export port to external IP
+sudo docker run -d -p 80:8080 --name myapp_$USER myapp-$USER:latest
+
+#access app address
+http://bastion.63dd.example.opentlc.com/example/myname
+
+#Set container variables:
+sudo docker run -d --rm -p 80:8080 --name=myapp_$USER -e FIRST_NAME="YourfirstName" -e LAST_NAME="YourlastName" myapp-$USER:latest
+
+#access app address
+http://bastion.63dd.example.opentlc.com/example/myname
