@@ -127,7 +127,7 @@ WORKDIR ${JBOSS_HOME}
 CMD ["/opt/java/server/as/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0" ]
 
 #build a image with docker file created before
-sudo docker build --rm=true --no-cache --force-rm --tag mywildfly-$USER:1.0 .
+sudo docker build --rm=true --no-cache --force-rm --tag myapp-$USER:1.0 .
 sudo docker images
 
 
