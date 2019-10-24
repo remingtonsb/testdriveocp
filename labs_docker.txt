@@ -14,6 +14,7 @@ sudo docker images
 #run a container rhel and create a file:
 sudo docker run --rm -ti --name rhel_$USER rhel:latest /bin/bash
 touch helloworld.txt
+echo "hello Alexandre" > helloworld.txt
 ls -lha helloworld.txt
 exit
 
