@@ -1,0 +1,155 @@
+#Create a project
+oc new-project myserver-$USER
+
+#Access a project
+oc project myserver-$USER
+
+#Create a pod
+
+oc create -f -<<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: appserver
+spec:
+  containers:
+  - image: jboss/wildfly:latest
+    imagePullPolicy: IfNotPresent
+    name: appserver
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+EOF
+
+#list pods in a project
+oc get pods
+
+#list a pods in all projects
+oc get pods --all-namespaces
+
+#list a pods in all-projects and show which node is hosted
+oc get pods --all-namespaces -o wide
+
+#watching the pods behavior
+oc get pods -w
+
+#show project events
+oc get events
+
+#show logs a pod application
+oc logs appserver
+
+#Describe more details about my pod
+oc describe pod/appserver
+
+#delete a pod
+oc delete pod/appserver
+
+#Create a deployment config
+oc create -f -<<EOF
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: appserver
+  labels:
+    name: appserver
+spec:
+  replicas: 1
+  selector:
+    app: appserver
+    deploymentconfig: appserver
+  template:
+    metadata:
+      labels:
+        app: appserver
+        deploymentconfig: appserver
+    spec:
+      containers:
+      - image: jboss/wildfly:latest
+        name: appserver
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+EOF
+
+
+#watching the pod behavior
+oc get pods -w
+
+#Show deployment config
+oc get dc
+
+#delete a pod from deployment config
+oc delete pod/appserver-1-x4njm
+
+##watching the pods and show which node is hosted
+oc get pods -w
+
+#Create a service
+oc create -f -<<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: appserver
+  name: appserver
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: appserver
+    deploymentconfig: appserver
+  sessionAffinity: None
+  type: ClusterIP
+EOF
+
+#show details about service
+oc get services
+
+#create a route
+oc create -f -<<EOF
+apiVersion: v1
+kind: Route
+metadata:
+  labels:
+    name: appserver
+  name: appserver
+spec:
+  host: myserver.cloudapps.testdrive.com
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: appserver
+    weight: 100
+EOF
+
+#Show details about routes
+oc get routes
+
+#Access routes address
+http://yourroute.com
+
+#delete a project
+oc delete project myserver-$USER
+
+#Create a new project called myserver2-$USER
+oc new-project myserver2-$USER
+
+#Access the project myserever2-$USER
+oc project myserver2-$USER
+
+#Create all resources in a project from template
+oc new-app https://raw.githubusercontent.com/latam-tech-office/testdrive-openshift/master/labs/mytemplate.yaml
+
+#Download template:
+curl -O https://raw.githubusercontent.com/latam-tech-office/testdrive-openshift/master/labs/mytemplate.yaml
+
+#Create resources from file
+oc create -f mytemplate.yaml
+
+#
